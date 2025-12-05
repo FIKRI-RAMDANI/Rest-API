@@ -1,0 +1,52 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go build folders
+/bin/
+/build/
+/dist/
+
+# Go modules
+vendor/
+
+# IDE / Editor
+.idea/
+.vscode/
+*.code-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.*
+*.env
+
+# Cache
+*.cache
+/.cache
+.go/
+go.sum_backup
+
+# Coverage / Testing
+*.cover
+coverage.out
+
+# Temporary files
+*.tmp
+*.bak
+*~
+# JetBrains
+*.iml
+/.idea/
