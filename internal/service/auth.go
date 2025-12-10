@@ -18,7 +18,7 @@ type authService struct {
 }
 
 func NewAuth(cnf *config.Config, userRepository domain.UserRepository) domain.AuthService {
-	return authService{
+	return &authService{
 		conf:           cnf,
 		userRepository: userRepository,
 	}
@@ -26,24 +26,35 @@ func NewAuth(cnf *config.Config, userRepository domain.UserRepository) domain.Au
 
 func (a authService) Login(ctx context.Context, req dto.AuthRequest) (dto.AuthResponse, error) {
 	user, err := a.userRepository.FindByEmail(ctx, req.Email)
+	// Server error in repository
 	if err != nil {
-		return dto.AuthResponse{}, err
+		return dto.AuthResponse{}, errors.New("internal server Error")
 	}
+	// cek user
 	if user.Id == "" {
-		return dto.AuthResponse{}, errors.New("authentication gagal")
+		return dto.AuthResponse{}, errors.New("authentication failed")
 	}
+	// cek Password
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password))
 	if err != nil {
-		return dto.AuthResponse{}, errors.New("authentication gagal")
+		return dto.AuthResponse{}, errors.New("authentication failed")
 	}
-	claim := jwt.MapClaims{
-		"id":  user.Id,
-		"exp": time.Now().Add(time.Duration(a.conf.Jwt.Exp) * time.Minute).Unix(),
+
+	now := time.Now()
+
+	claims := jwt.MapClaims{
+		"sub": user.Id,
+		"iss": "fikri-rest-api",
+		"iat": now.Unix(),
+		"nbf": now.Unix(),
+		"exp": now.Add(time.Duration(a.conf.Jwt.Exp) * time.Minute).Unix(),
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodES256, claim)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// sign token
 	tokenStr, err := token.SignedString([]byte(a.conf.Jwt.Key))
 	if err != nil {
-		return dto.AuthResponse{}, errors.New("authentication gagal")
+		return dto.AuthResponse{}, errors.New("internal server error")
 	}
 	return dto.AuthResponse{
 		Token: tokenStr,

@@ -40,19 +40,34 @@ func (b bookService) Index(ctx context.Context) ([]dto.BookData, error) {
 	return data, nil
 }
 
-func (b bookService) Show(ctx context.Context, id string) (dto.BookData, error) {
+func (b bookService) Show(ctx context.Context, id string) (dto.BookShowData, error) {
 	persisted, err := b.bookRepository.FindById(ctx, id)
 	if err != nil {
-		return dto.BookData{}, err
+
+		return dto.BookShowData{}, err
 	}
 	if persisted.Id == "" {
-		return dto.BookData{}, errors.New("Data buku tidak ditemukan")
+		return dto.BookShowData{}, domain.BookNotFound
 	}
-	return dto.BookData{
-		Id:          persisted.Id,
-		Isbn:        persisted.Isbn,
-		Title:       persisted.Title,
-		Description: persisted.Description,
+	stocks, err := b.bookstockRepository.FindById(ctx, persisted.Id)
+	if err != nil {
+		return dto.BookShowData{}, err
+	}
+	stocksData := make([]dto.BookStockData, 0)
+	for _, v := range stocks {
+		stocksData = append(stocksData, dto.BookStockData{
+			Code:   v.Code,
+			Status: v.Status,
+		})
+	}
+	return dto.BookShowData{
+		BookData: dto.BookData{
+			Id:          persisted.Id,
+			Isbn:        persisted.Isbn,
+			Title:       persisted.Title,
+			Description: persisted.Description,
+		},
+		Stocks: stocksData,
 	}, nil
 }
 
@@ -73,7 +88,7 @@ func (b bookService) Update(ctx context.Context, req dto.UpdateBookRequest) erro
 		return err
 	}
 	if persisted.Id == "" {
-		return errors.New("Data buku tidak ditemukan")
+		return errors.New("book not found")
 	}
 	persisted.Isbn = req.Isbn
 	persisted.Title = req.Title
@@ -89,7 +104,11 @@ func (b bookService) Delete(ctx context.Context, id string) error {
 		return err
 	}
 	if exist.Id == "" {
-		return errors.New("Data buku tidak ditemukan")
+		return errors.New("book not found")
 	}
-	return b.bookRepository.Deleted(ctx, id)
+	err = b.bookRepository.Deleted(ctx, id)
+	if err != nil {
+		return err
+	}
+	return b.bookstockRepository.DeleteByBookID(ctx, exist.Id)
 }

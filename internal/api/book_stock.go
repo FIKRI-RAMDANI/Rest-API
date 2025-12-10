@@ -49,10 +49,12 @@ func (ba bookStockApi) Delete(ctx *fiber.Ctx) error {
 	defer cancel()
 
 	// ?code=
-	codes := strings.Split(ctx.Query("code"), ";")
-	if len(codes) < 1 {
+	codeStr := ctx.Query("code")
+	if codeStr == "" {
 		return ctx.Status(http.StatusBadRequest).JSON(dto.CreateResponseError("Need Parameter"))
 	}
+	codes := strings.Split(codeStr, ";")
+
 	err := ba.bookStockService.Delete(c, dto.DeleteBookStockRequest{Codes: codes})
 	if err != nil {
 		return ctx.Status(http.StatusInternalServerError).JSON(dto.CreateResponseError(err.Error()))

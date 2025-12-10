@@ -38,7 +38,15 @@ func (br bookRepository) Save(ctx context.Context, book *domain.Book) error {
 }
 
 func (br bookRepository) Updated(ctx context.Context, book *domain.Book) error {
-	executor := br.db.Update("books").Where(goqu.C("id").Eq(book.Id)).Set(book).Executor()
+	executor := br.db.Update("books").
+		Where(goqu.C("id").Eq(book.Id)).
+		Set(goqu.Record{
+			"isbn":        book.Isbn,
+			"title":       book.Title,
+			"description": book.Description,
+			"updated_at":  time.Now(),
+		}).Executor()
+
 	_, err := executor.ExecContext(ctx)
 	return err
 }

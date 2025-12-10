@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/FIKRI-RAMDANI/Rest-API/domain"
@@ -36,6 +37,21 @@ func (c customerService) Index(ctx context.Context) ([]dto.CustomerData, error) 
 	return customerData, nil
 }
 
+func (c customerService) Show(ctx context.Context, id string) (dto.CustomerData, error) {
+	persisted, err := c.costumerRepository.FindById(ctx, id)
+	if err != nil {
+		return dto.CustomerData{}, err
+	}
+	if persisted.ID == "" {
+		return dto.CustomerData{}, errors.New("Data customer tidak ditemukan")
+	}
+	return dto.CustomerData{
+		ID:   persisted.ID,
+		Code: persisted.Code,
+		Name: persisted.Name,
+	}, nil
+}
+
 func (c customerService) Create(ctx context.Context, req dto.CreateCustomerRequest) error {
 	customer := domain.Customer{
 		ID:        uuid.NewString(),
@@ -44,4 +60,30 @@ func (c customerService) Create(ctx context.Context, req dto.CreateCustomerReque
 		CreatedAt: sql.NullTime{Valid: true, Time: time.Now()},
 	}
 	return c.costumerRepository.Save(ctx, &customer)
+}
+
+func (c customerService) Update(ctx context.Context, req dto.UpdateCustomerRequest) error {
+	persisted, err := c.costumerRepository.FindById(ctx, req.ID)
+	if err != nil {
+		return err
+	}
+	if persisted.ID == "" {
+		return errors.New("Data customer tidak ditemukan")
+	}
+	persisted.Code = req.Code
+	persisted.Name = req.Name
+	persisted.UpdatedAt = sql.NullTime{Valid: true, Time: time.Now()}
+
+	return c.costumerRepository.Update(ctx, &persisted)
+}
+
+func (c customerService) Delete(ctx context.Context, id string) error {
+	exits, err := c.costumerRepository.FindById(ctx, id)
+	if err != nil {
+		return err
+	}
+	if exits.ID == "" {
+		return errors.New("Data customer tidak ditemukan")
+	}
+	return c.costumerRepository.Delete(ctx, id)
 }
